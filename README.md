@@ -19,22 +19,22 @@ Generates a PNG image file that represents the contents of a specified file.
 
 ![example](/img/visualized_files.png)
 
-apply___all_signatures.py
+apply_all_signatures.py
 ----------------------------
 (IDA Pro Only) Applies all FLIRT signatures in a <IDA DIR>/sig directory.
 
-color___as_default.py
+color_as_default.py
 ----------------------------
 (IDA Pro Only) Changes all instructions color to default.
 
-find___ARMB_prologue.py
+find_ARMB_prologue.py
 ----------------------------
 (IDA Pro Only) Finds function-prologue-like byte sequences for ARMB.
 
-highlight___all_CALLs.py
+highlight_all_CALLs.py
 ----------------------------
 (IDA Pro Only) Highlights all CALL instructions in a given binary file.
 
-show___SEH_chain.py
+show_SEH_chain.py
 ----------------------------
 (IDA Pro Only) Shows SEH chains (stack and handlers) for all threads.
