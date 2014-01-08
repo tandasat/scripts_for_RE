@@ -3,6 +3,10 @@ scripts_for_RE
 
 Python scripts for reverse engineering.
 
+merge_functions.py
+----------------------------
+(IDA Pro Only) Merges a given function with the next function.
+
 win_ioctl.py
 ----------------------------
 Decodes a given 32-Bit Windows Device I/O control code.
