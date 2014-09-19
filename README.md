@@ -45,5 +45,5 @@ show_SEH_chain.py
 
 rotate.py
 ----------------------------
-Provides __ROR4__, __ROR8__, __ROL4__ and __ROL8__ functions.
+Provides \__ROR4__, \__ROR8__, \__ROL4__ and \__ROL8__ functions.
 
