@@ -42,3 +42,8 @@ highlight_all_CALLs.py
 show_SEH_chain.py
 ----------------------------
 (IDA Pro Only) Shows SEH chains (stack and handlers) for all threads.
+
+rotate.py
+----------------------------
+Provides __ROR4__, __ROR8__, __ROL4__ and __ROL8__ functions.
+
