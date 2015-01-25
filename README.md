@@ -3,6 +3,10 @@ scripts_for_RE
 
 Python scripts for reverse engineering.
 
+parse_ARM_SEH.py
+----------------------------
+(IDA Only) Locates SEH try blocks, exception filters and handlers for Windows RT.
+
 merge_functions.py
 ----------------------------
 (IDA Only) Merges a given function with the next function.
