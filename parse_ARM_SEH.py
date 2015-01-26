@@ -161,7 +161,7 @@ class TryExceptEntryBase(SEHEntry):
             except_str = 'INVALID'
         _append_comment(
             self.begin,
-            '__try {{ till {:08X} }} __except( {:s} ) {{ {:08X} }}'.format(
+            '__try {{ // till {:08X} }} __except( {:s} ) {{ {:08X} }}'.format(
                 self.end & ~1,
                 except_str,
                 target & ~1))
@@ -171,9 +171,10 @@ class TryExceptEntryBase(SEHEntry):
                 self.begin & ~1))
         _append_comment(
             target,
-            '__try {{ from {:08X} }} __except( {:s} ) {{ here }}'.format(
+            '__except( {:s} ) {{ here }} // __try {{ {:08X}-{:08X} }}'.format(
+                except_str,
                 self.begin & ~1,
-                except_str))
+                self.end & ~1))
 
 
 class TryExceptEntry(TryExceptEntryBase):
@@ -190,9 +191,10 @@ class TryExceptEntry(TryExceptEntryBase):
         _make_references(self.address + 12, self.target, 'ExpBody ')
         _append_comment(
             self.handler,
-            '__try {{ {:08X} }} __except(here) {{ {:08X} }}'.format(
+            '__except( here ) {{ {:08X} }} // __try {{ {:08X}-{:08X} }}'.format(
+                self.target & ~1,
                 self.begin & ~1,
-                self.target & ~1))
+                self.end & ~1))
 
 
 class TryInvalidExceptEntry(TryExceptEntryBase):
@@ -219,7 +221,7 @@ class TryFinallyEntry(SEHEntry):
         MakeDword(self.address + 12)
         _append_comment(
             self.begin,
-            '__try {{ till {:08X} }} __finally {{ {:08X} }}'.format(
+            '__try {{ // till {:08X} }} __finally {{ {:08X} }}'.format(
                 self.end & ~1,
                 self.handler & ~1))
         _append_comment(
@@ -228,8 +230,9 @@ class TryFinallyEntry(SEHEntry):
                 self.begin & ~1))
         _append_comment(
             self.handler,
-            '__try {{ {:08X} }} __finally {{ here }}'.format(
-                self.begin & ~1))
+            '__finally {{ here }} // __try {{ {:08X}-{:08X} }}'.format(
+                self.begin & ~1,
+                self.end & ~1))
 
 
 def _append_comment(address, comment):
