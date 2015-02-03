@@ -47,10 +47,10 @@ def main():
         last_page = 0
         for ea in list(Heads(segment_begin_ea, segment_end_ea)):
             # Print log if a processing page changed
-            current_page = (ea & 0xfffff000)
+            current_page = (ea & 0xffffffffffff0000)
             if last_page != current_page:
                 last_page = current_page
-                print('Processing 0x%08X (Range of "%s" is 0x%08X - 0x%08X)' %
+                print('Processing 0x%016X (Range of "%s" is 0x%016X - 0x%016X)' %
                       (last_page, SegName(current_page), segment_begin_ea,
                        segment_end_ea)
                       )
@@ -58,7 +58,6 @@ def main():
             disasm = GetDisasm(ea)
             if disasm[:len(call_instruction)] == call_instruction:
                 SetColor(ea, CIC_ITEM, 0xd8bfd8)
-                #print '0x%08X .. %s' % (ea, disasm)
 
 
 if __name__ == '__main__':
