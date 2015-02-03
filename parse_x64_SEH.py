@@ -1,6 +1,6 @@
 #!/usr/bin/python
 #
-# Locates SEH try blocks, exception filters and handlers for Windows RT files.
+# Locates SEH try blocks, exception filters and handlers for x64 Windows files.
 #
 # Author: Satoshi Tanda
 #
@@ -32,76 +32,66 @@ class RuntimeFuncton(object):
     '''Represents RUNTIME_FUNCTION'''
     def __init__(self, address):
         self.begin_address = Dword(address) + idaapi.get_imagebase()
-        self.unwind_info = Dword(address + 4)
+        self.unwind_info = Dword(address + 8)
+        MakeStructEx(address, -1, 'RUNTIME_FUNCTION')
 
-    def _get_flag(self):
-        return self.unwind_info & 3
-
-    def _get_content(self):
-        return self.unwind_info & ~3
-
-    def get_xdata(self):
-        # A pdata entry has xata when a Flag field is zero.
-        if self._get_flag():
-            return None
-        name = Name(self.begin_address & ~1)
-        xdata_addr = (self._get_content() + idaapi.get_imagebase())
-        return XdataRecord(name, xdata_addr)
+    def get_unwind_info(self):
+        name = Name(self.begin_address)
+        return UnwindInfo(name, self.unwind_info + idaapi.get_imagebase())
 
 
-class XdataRecord(object):
-    '''Represents an xdata record'''
+class UnwindInfo(object):
+    '''Represents UNWIND_INFO'''
+    _UNW_FLAG_NHANDLER = 0
+    _UNW_FLAG_EHANDLER = 1
+    _UNW_FLAG_UHANDLER = 2
+    _UNW_FLAG_CHAININFO = 4
+
     def __init__(self, name, address):
         self.begin_address = address
-        MakeDword(address)
         if name == '':
-            name = '_loc_{:08X}'.format(address)
-        name += '_xdata'
+            name = '_loc_{:016X}'.format(address)
+        name += '_unwind_info'
         if MakeNameEx(address, name, SN_CHECK | SN_NOWARN) == 0:
             MakeNameEx(address, '_' + name, SN_CHECK | SN_NOWARN)
+        MakeStructEx(address, -1, 'UNWIND_INFO')
+
+    def _has_exception_handler(self):
+        flag = Byte(self.begin_address) >> 3
+        if flag & self._UNW_FLAG_CHAININFO:
+            return False
+        return (
+            flag & self._UNW_FLAG_EHANDLER or
+            flag & self._UNW_FLAG_UHANDLER
+        )
 
     def get_exp_handler_info(self):
-        xdata_header = Dword(self.begin_address)
-        # Check an X field to determine if it has exception information
-        if (xdata_header & 0x00100000) == 0:
-            return None
-
-        print('%08x : %s' % (self.begin_address, Name(self.begin_address)))
-        # Check if either EpilogueCount field or CodeWords field has value
-        if xdata_header & 0xFF800000:
-            # Use 1st word
-            epilogue_count = (xdata_header & 0x0F800000) >> 23
-            code_words = (xdata_header & 0xF0000000) >> 28
-            offset = self.begin_address + 4
-        else:
-            # It has an extra header; use 2nd word
-            xdata_header_ex = Dword(self.begin_address + 4)
-            MakeDword(self.begin_address + 4)
-            epilogue_count = (xdata_header_ex & 0x0000FFFF)
-            code_words = (xdata_header_ex & 0x00FF0000) >> 16
-            offset = self.begin_address + 8
-        # Consider EpilogueCount when an E field is zero.
-        if (xdata_header & 0x00200000) == 0 and epilogue_count != 0:
-            MakeDword(offset)
-            MakeArray(offset, epilogue_count)
-            offset += epilogue_count * 4
-        addr = offset + code_words * 4
-        MakeByte(offset)                            # skip Unwind Opcodes
-        MakeArray(offset, code_words * 4)
+        code_count = Byte(self.begin_address + 2)
+        for i in range(0, code_count):
+            MakeStructEx(self.begin_address + 4 + (i * 2), -1, 'UNWIND_CODE')
+        if not self._has_exception_handler():
+            return
+        print('%016X : %s' % (self.begin_address, Name(self.begin_address)))
+        addr = self.begin_address + 4 + code_count * 2
+        addr += (addr % 4)      # 4 bytes aligned (0->0, 2->4, 4->4, ...)
         return ExceptionHandlerInformation(addr)    # get Exception Info
 
 
 class ExceptionHandlerInformation(object):
     '''Represents Exception Handler Information (a.k.a, SCOPE_TABLE)'''
+    _SUPPORTED_HANDLER_NAMES = [
+        '__GSHandlerCheck_SEH',
+        '__C_specific_handler'
+    ]
+
     def __init__(self, address):
         self.address = address
         self.exp_handler = Dword(address) + idaapi.get_imagebase()
         self.number_of_scope_entries = Dword(address + 4)
         self.address_of_scope_entries = address + 8
         self.scope_entries = []
-        # Some handlers have huge values such as 0xffffffe9 and are not
-        # supported.
-        if self.number_of_scope_entries > 0xff000000:
+        # Only some handlers' date formats are supported.
+        if not Name(self.exp_handler) in self._SUPPORTED_HANDLER_NAMES:
             return
         for i in range(0, self.number_of_scope_entries):
             self.scope_entries.append(
@@ -158,25 +148,25 @@ class TryExceptEntryBase(SEHEntry):
     def apply_to_database(self, target, handler=None):
         super(TryExceptEntryBase, self).apply_to_database()
         if handler:
-            except_str = '{:08X}'.format(handler & ~1)
+            except_str = '{:016X}'.format(handler)
         else:
             except_str = 'INVALID'
         _append_comment(
             self.begin,
-            '__try {{ // till {:08X} }} __except( {:s} ) {{ {:08X} }}'.format(
-                self.end & ~1,
+            '__try {{ // till {:016X} }} __except( {:s} ) {{ {:016X} }}'.format(
+                self.end,
                 except_str,
-                target & ~1))
+                target))
         _append_comment(
             self.end,
-            '}} // from {:08X}'.format(
-                self.begin & ~1))
+            '}} // from {:016X}'.format(
+                self.begin))
         _append_comment(
             target,
-            '__except( {:s} ) {{ here }} // __try {{ {:08X}-{:08X} }}'.format(
+            '__except( {:s} ) {{ here }} // __try {{ {:016X}-{:016X} }}'.format(
                 except_str,
-                self.begin & ~1,
-                self.end & ~1))
+                self.begin,
+                self.end))
 
 
 class TryExceptEntry(TryExceptEntryBase):
@@ -193,10 +183,10 @@ class TryExceptEntry(TryExceptEntryBase):
         _make_references(self.address + 12, self.target, 'ExpBody ')
         _append_comment(
             self.handler,
-            '__except( here ) {{ {:08X} }} // __try {{ {:08X}-{:08X} }}'.format(
-                self.target & ~1,
-                self.begin & ~1,
-                self.end & ~1))
+            '__except( here ) {{ {:016X} }} // __try {{ {:016X}-{:016X} }}'.format(
+                self.target,
+                self.begin,
+                self.end))
 
 
 class TryInvalidExceptEntry(TryExceptEntryBase):
@@ -223,37 +213,37 @@ class TryFinallyEntry(SEHEntry):
         MakeDword(self.address + 12)
         _append_comment(
             self.begin,
-            '__try {{ // till {:08X} }} __finally {{ {:08X} }}'.format(
-                self.end & ~1,
-                self.handler & ~1))
+            '__try {{ // till {:016X} }} __finally {{ {:016X} }}'.format(
+                self.end,
+                self.handler))
         _append_comment(
             self.end,
-            '}} // from {:08X}'.format(
-                self.begin & ~1))
+            '}} // from {:016X}'.format(
+                self.begin))
         _append_comment(
             self.handler,
-            '__finally {{ here }} // __try {{ {:08X}-{:08X} }}'.format(
-                self.begin & ~1,
-                self.end & ~1))
+            '__finally {{ here }} // __try {{ {:016X}-{:016X} }}'.format(
+                self.begin,
+                self.end))
 
 
 def _append_comment(address, comment):
-    old_comment = Comment(address & ~1)
+    old_comment = Comment(address)
     if old_comment == comment:     # ignore duplicates
         return
     elif old_comment:
         old_comment += '\n'
     else:
         old_comment = ''
-    MakeComm(address & ~1, old_comment + comment)
+    MakeComm(address, old_comment + comment)
 
 
 def _make_references(from_address, to_address, comment):
     MakeDword(from_address)
     add_dref(from_address, to_address, XREF_USER | dr_O)
-    name = Name(to_address & ~1)
+    name = Name(to_address)
     if name == '':
-        name = '{:08X}'.format(to_address)
+        name = '{:016X}'.format(to_address)
     _append_comment(from_address, comment + ': ' + name)
 
 
@@ -267,12 +257,12 @@ def main():
             break
         # try to get exception info from RUNTIME_FUNCTION and apply it
         runtime_function = RuntimeFuncton(address)
-        xdata = runtime_function.get_xdata()
-        if xdata:
-            exception_info = xdata.get_exp_handler_info()
+        unwind_info = runtime_function.get_unwind_info()
+        if unwind_info:
+            exception_info = unwind_info.get_exp_handler_info()
             if exception_info:
                 exception_info.apply_to_database()
-        address += 8        # size of RUNTIME_FUNCTION
+        address += 12        # size of RUNTIME_FUNCTION
 
 
 if __name__ == '__main__':

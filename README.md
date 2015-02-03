@@ -3,6 +3,10 @@ scripts_for_RE
 
 Python scripts for reverse engineering.
 
+parse_x64_SEH.py
+----------------------------
+(IDA Only) Locates SEH try blocks, exception filters and handlers for x64 Windows.
+
 parse_ARM_SEH.py
 ----------------------------
 (IDA Only) Locates SEH try blocks, exception filters and handlers for Windows RT.
@@ -14,8 +18,6 @@ merge_functions.py
 visualize_binary.py
 ----------------------------
 Generates a PNG image file that represents the contents of a specified file.
-
-![example](/img/visualized_files.png)
 
 apply_all_signatures.py
 ----------------------------
