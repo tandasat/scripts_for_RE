@@ -79,11 +79,6 @@ class UnwindInfo(object):
 
 class ExceptionHandlerInformation(object):
     '''Represents Exception Handler Information (a.k.a, SCOPE_TABLE)'''
-    _SUPPORTED_HANDLER_NAMES = [
-        '__GSHandlerCheck_SEH',
-        '__C_specific_handler'
-    ]
-
     def __init__(self, address):
         self.address = address
         self.exp_handler = Dword(address) + idaapi.get_imagebase()
@@ -91,11 +86,21 @@ class ExceptionHandlerInformation(object):
         self.address_of_scope_entries = address + 8
         self.scope_entries = []
         # Only some handlers' date formats are supported.
-        if not Name(self.exp_handler) in self._SUPPORTED_HANDLER_NAMES:
+        if not self._is_suppoeted_handler(Name(self.exp_handler)):
             return
         for i in range(0, self.number_of_scope_entries):
             self.scope_entries.append(
                 ScopeEntry(self.address_of_scope_entries + i * 16))
+
+    def _is_suppoeted_handler(self, handler_name):
+        SUPPORTED_HANDLER_NAMES = [
+            '__GSHandlerCheck_SEH',
+            '__C_specific_handler',
+        ]
+        for name in SUPPORTED_HANDLER_NAMES:
+            if handler_name.startswith(name):
+                return True
+        return False
 
     def apply_to_database(self):
         _make_references(self.address, self.exp_handler, 'Handler ')
@@ -145,17 +150,13 @@ class TryExceptEntryBase(SEHEntry):
     def __init__(self, address):
         super(TryExceptEntryBase, self).__init__(address)
 
-    def apply_to_database(self, target, handler=None):
+    def apply_to_database(self, target, handler):
         super(TryExceptEntryBase, self).apply_to_database()
-        if handler:
-            except_str = '{:016X}'.format(handler)
-        else:
-            except_str = 'INVALID'
         _append_comment(
             self.begin,
-            '__try {{ // till {:016X} }} __except( {:s} ) {{ {:016X} }}'.format(
+            '__try {{ // till {:016X} }} __except( {:016X} ) {{ {:016X} }}'.format(
                 self.end,
-                except_str,
+                handler,
                 target))
         _append_comment(
             self.end,
@@ -163,8 +164,8 @@ class TryExceptEntryBase(SEHEntry):
                 self.begin))
         _append_comment(
             target,
-            '__except( {:s} ) {{ here }} // __try {{ {:016X}-{:016X} }}'.format(
-                except_str,
+            '__except( {:016X} ) {{ here }} // __try {{ {:016X}-{:016X} }}'.format(
+                handler,
                 self.begin,
                 self.end))
 
@@ -196,9 +197,7 @@ class TryInvalidExceptEntry(TryExceptEntryBase):
         self.target = Dword(address + 12) + idaapi.get_imagebase()
 
     def apply_to_database(self):
-        super(TryInvalidExceptEntry, self).apply_to_database(self.target)
-        MakeDword(self.address + 8)
-        _make_references(self.address + 12, self.target, 'ExpBody ')
+        pass    # An invalid handler will never be called
 
 
 class TryFinallyEntry(SEHEntry):

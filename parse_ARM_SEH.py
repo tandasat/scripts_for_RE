@@ -155,17 +155,13 @@ class TryExceptEntryBase(SEHEntry):
     def __init__(self, address):
         super(TryExceptEntryBase, self).__init__(address)
 
-    def apply_to_database(self, target, handler=None):
+    def apply_to_database(self, target, handler):
         super(TryExceptEntryBase, self).apply_to_database()
-        if handler:
-            except_str = '{:08X}'.format(handler & ~1)
-        else:
-            except_str = 'INVALID'
         _append_comment(
             self.begin,
-            '__try {{ // till {:08X} }} __except( {:s} ) {{ {:08X} }}'.format(
+            '__try {{ // till {:08X} }} __except( {:08X} ) {{ {:08X} }}'.format(
                 self.end & ~1,
-                except_str,
+                handler & ~1,
                 target & ~1))
         _append_comment(
             self.end,
@@ -173,8 +169,8 @@ class TryExceptEntryBase(SEHEntry):
                 self.begin & ~1))
         _append_comment(
             target,
-            '__except( {:s} ) {{ here }} // __try {{ {:08X}-{:08X} }}'.format(
-                except_str,
+            '__except( {:08X} ) {{ here }} // __try {{ {:08X}-{:08X} }}'.format(
+                handler & ~1,
                 self.begin & ~1,
                 self.end & ~1))
 
@@ -206,9 +202,7 @@ class TryInvalidExceptEntry(TryExceptEntryBase):
         self.target = Dword(address + 12) + idaapi.get_imagebase()
 
     def apply_to_database(self):
-        super(TryInvalidExceptEntry, self).apply_to_database(self.target)
-        MakeDword(self.address + 8)
-        _make_references(self.address + 12, self.target, 'ExpBody ')
+        pass    # An invalid handler will never be called
 
 
 class TryFinallyEntry(SEHEntry):
