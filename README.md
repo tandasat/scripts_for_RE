@@ -3,6 +3,14 @@ scripts_for_RE
 
 Python scripts for reverse engineering.
 
+mem2file.py
+----------------------------
+Modifies the give raw PE memory dump file to load it with IDA properly.
+
+load_IAT.py
+----------------------------
+(IDA Only) Loads an output of a 'dps' command and apply it to the IDB file.
+
 parse_x64_SEH.py
 ----------------------------
 (IDA Only) Locates SEH try blocks, exception filters and handlers for x64 Windows.
