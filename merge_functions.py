@@ -48,22 +48,23 @@ def merge_functions(top_func_ea=None):
     """Merges a given function with the next function."""
     if not top_func_ea:
         prompt = ('Please input any address ' +
-                  'belonging to the function to be extended.')
+                  'belongs to the function to be extended.')
         top_func_ea = idc.AskAddr(idaapi.get_screen_ea(), prompt)
     if top_func_ea == idc.BADADDR or not top_func_ea:
         return
     next_func = idaapi.get_next_func(top_func_ea)
     next_func_name = idc.GetFunctionName(next_func.startEA)
+    name = idc.GetFunctionName(top_func_ea)
     if next_func_name[:4] != 'sub_':
-        prompt = ("The next function that will be merged has a name as '" +
-                  next_func_name + "'.\nDo you want to continue?")
+        prompt = (
+            "A function '" + name + "' will be merged with a next function '" +
+            next_func_name + "'.\nDo you want to continue?")
         if idc.AskYN(0, prompt) != 1:
             return
     end_ea = idaapi.get_next_func(top_func_ea).endEA
     idc.DelFunction(idaapi.get_next_func(top_func_ea).startEA)
     idc.SetFunctionEnd(top_func_ea, end_ea)
-    name = idc.GetFunctionName(top_func_ea)
-    print "The end of '%s' was extended to 0x%08X" % (name, end_ea)
+    print "'%s' was extended to 0x%08X" % (name, end_ea)
     idc.Jump(end_ea - 1)
 
 
