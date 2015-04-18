@@ -34,9 +34,9 @@ from idautils import *
 def main():
     processor_name = GetCharPrm(INF_PROCNAME)
     if processor_name == 'metapc':
-        call_instruction = 'call'
+        call_instructions = ['call']
     elif processor_name == 'ARM':
-        call_instruction = 'BL'
+        call_instructions = ['BL', 'BX', 'BLX']
     else:
         print 'Unsupported processor type: %s' % (processor_name)
         return
@@ -56,8 +56,9 @@ def main():
                       )
             # Set color if this instruction is CALL
             disasm = GetDisasm(ea)
-            if disasm[:len(call_instruction)] == call_instruction:
-                SetColor(ea, CIC_ITEM, 0xd8bfd8)
+            for inst in call_instructions:
+                if disasm.startswith(inst + ' '):
+                    SetColor(ea, CIC_ITEM, 0xd8bfd8)
 
 
 if __name__ == '__main__':
