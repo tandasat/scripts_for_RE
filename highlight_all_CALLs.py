@@ -7,7 +7,7 @@
 ###############################################################################
 # The MIT License (MIT)
 #
-# Copyright (c) 2013 tandasat
+# Copyright (c) 2013-2015 tandasat
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of
 # this software and associated documentation files (the "Software"), to deal in
@@ -36,7 +36,7 @@ def main():
     if processor_name == 'metapc':
         call_instructions = ['call']
     elif processor_name == 'ARM':
-        call_instructions = ['BL', 'BX', 'BLX']
+        call_instructions = ['BL', 'BL.W', 'BX', 'BLX']
     else:
         print 'Unsupported processor type: %s' % (processor_name)
         return
@@ -54,7 +54,7 @@ def main():
                       (last_page, SegName(current_page), segment_begin_ea,
                        segment_end_ea)
                       )
-            # Set color if this instruction is CALL
+            # Set colour if this instruction is any of call instructions
             disasm = GetDisasm(ea)
             for inst in call_instructions:
                 if disasm.startswith(inst + ' '):
