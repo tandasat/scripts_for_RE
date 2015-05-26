@@ -3,6 +3,10 @@ scripts_for_RE
 
 Python scripts for reverse engineering.
 
+create_suspended_process.py
+----------------------------
+Launches a suspended process.
+
 mem2file.py
 ----------------------------
 Modifies the give raw PE memory dump file to load it with IDA properly.
