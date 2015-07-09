@@ -36,7 +36,8 @@ def main():
     for line in open(path, 'r'):
         addr = line[0:9]
         symbol = line[19:]
-        if re.match('^[0-9a-f]{8} $', addr) is None or symbol == '':
+        if (re.match('^[0-9a-f]{8} $', addr) is None or
+                re.match('^.+!.+$', symbol) is None):
             continue
         addr = int(addr, 16)
         _, api = symbol.rstrip().split('!')
@@ -58,7 +59,7 @@ def main():
             if i == 9:
                 MakeName(addr, api)   # Display an error message
     print (
-        'Load an appropriate FLIRT signature if IDA is not applied it yet.\n'
+        'Load an appropriate FLIRT signature if it is not applied yet.\n'
         'Then, use [Options] > [General] > [Analysis] > [Reanalyze program] to'
         ' reflect API signatures.'
     )
