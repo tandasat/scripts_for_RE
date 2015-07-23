@@ -37,7 +37,7 @@ def main():
         addr = line[0:9]
         symbol = line[19:]
         if (re.match('^[0-9a-f]{8} $', addr) is None or
-                re.match('^.+!.+$', symbol) is None):
+                re.match('^.+![\\w+]+$', symbol) is None):
             continue
         addr = int(addr, 16)
         _, api = symbol.rstrip().split('!')
@@ -47,21 +47,22 @@ def main():
             api = api.replace('Implementation', '')
         elif api.endswith('Stub'):
             api = api.replace('Stub', '')
+        api = api.replace('+', '_')
         print hex(addr), api
         MakeUnknown(addr, 4, DOUNK_EXPAND)
         MakeData(addr, FF_DWRD, 4, 0)
         if MakeNameEx(addr, api, SN_CHECK | SN_NOWARN) == 1:
             continue
         # Try to name it as <name>_N up to _9
-        for i in range(10):
+        for i in range(100):
             if MakeNameEx(addr, api + '_' + str(i), SN_CHECK | SN_NOWARN) == 1:
                 break
-            if i == 9:
+            if i == 99:
                 MakeName(addr, api)   # Display an error message
     print (
         'Load an appropriate FLIRT signature if it is not applied yet.\n'
         'Then, use [Options] > [General] > [Analysis] > [Reanalyze program] to'
-        ' reflect API signatures.'
+        ' reflect those API signatures.'
     )
 
 if __name__ == '__main__':
