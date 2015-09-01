@@ -34,14 +34,26 @@ def main():
     if not path:
         return
     for line in open(path, 'r'):
-        addr = line[0:9]
-        symbol = line[19:]
-        if (re.match('^[0-9a-f]{8} $', addr) is None or
-                re.match('^.+![\\w+]+$', symbol) is None):
+        line = line.replace('`', '')
+        if re.match('^[0-9a-f]{8} ', line):
+            # 32bit
+            addr = line[0:9]
+            symbol = line[19:]
+            bytewise = 4
+            optype =  FF_DWRD
+        elif re.match('^[0-9a-f]{16} ', line):
+            # 64bit
+            addr = line[0:17]
+            symbol = line[27:]
+            bytewise = 8
+            optype =  FF_QWRD
+        else:
+            continue
+        if re.match('^.+![\\w+]+$', symbol) is None:
             continue
         addr = int(addr, 16)
         _, api = symbol.rstrip().split('!')
-        # Remove garbage make IDA understand API's signature
+        # Remove garbage to make IDA understand API's signature
         api = api.split(' ')[0]
         if api.endswith('Implementation'):
             api = api.replace('Implementation', '')
@@ -49,11 +61,12 @@ def main():
             api = api.replace('Stub', '')
         api = api.replace('+', '_')
         print hex(addr), api
-        MakeUnknown(addr, 4, DOUNK_EXPAND)
-        MakeData(addr, FF_DWRD, 4, 0)
+        # Set a data type on the IDB
+        MakeUnknown(addr, bytewise, DOUNK_EXPAND)
+        MakeData(addr, optype, bytewise, 0)
         if MakeNameEx(addr, api, SN_CHECK | SN_NOWARN) == 1:
             continue
-        # Try to name it as <name>_N up to _9
+        # Try to name it as <name>_N up to _99
         for i in range(100):
             if MakeNameEx(addr, api + '_' + str(i), SN_CHECK | SN_NOWARN) == 1:
                 break
