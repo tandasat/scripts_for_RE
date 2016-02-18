@@ -7,7 +7,7 @@
 ################################################################################
 # The MIT License (MIT)
 #
-# Copyright (c) 2015 tandasat
+# Copyright (c) 2015-2016 tandasat
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of
 # this software and associated documentation files (the "Software"), to deal in
@@ -34,7 +34,8 @@ def main():
     if not path:
         return
     for line in open(path, 'r'):
-        line = line.replace('`', '')
+        line = line.replace('`', '')            # take out ' if exists
+        # parse an address
         if re.match('^[0-9a-f]{8} ', line):
             # 32bit
             addr = line[0:9]
@@ -49,18 +50,27 @@ def main():
             optype =  FF_QWRD
         else:
             continue
-        if re.match('^.+![\\w+]+$', symbol) is None:
+        if re.match('^.+!.+$', symbol) is None:
             continue
         addr = int(addr, 16)
-        _, api = symbol.rstrip().split('!')
+        _, api = symbol.rstrip().split('!')   # only needs a function name
+
         # Remove garbage to make IDA understand API's signature
+
+        # Discard after space (source code path)
         api = api.split(' ')[0]
+        # Fix for ExitProcess often gets a wrong name
+        if api.endswith('FSPErrorMessages::CMessageMapper::StaticCleanup+0xc'):
+            api = api.replace('FSPErrorMessages::CMessageMapper::StaticCleanup+0xc', 'ExitProcess')
+        # Fix for kernelbase.dll related stub functions
         if api.endswith('Implementation'):
             api = api.replace('Implementation', '')
         elif api.endswith('Stub'):
             api = api.replace('Stub', '')
+        # IDA does not like +
         api = api.replace('+', '_')
         print hex(addr), api
+
         # Set a data type on the IDB
         MakeUnknown(addr, bytewise, DOUNK_EXPAND)
         MakeData(addr, optype, bytewise, 0)
