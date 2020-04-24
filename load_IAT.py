@@ -69,7 +69,7 @@ def main():
             api = api.replace('Stub', '')
         # IDA does not like +
         api = api.replace('+', '_')
-        print hex(addr), api
+        print(hex(addr), api)
 
         # Set a data type on the IDB
         MakeUnknown(addr, bytewise, DOUNK_EXPAND)

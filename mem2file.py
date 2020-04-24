@@ -40,8 +40,8 @@ import binascii
 
 def main():
     if len(sys.argv) != 2 and len(sys.argv) != 3:
-        print 'Fix a raw memory PE file to load it with IDA.'
-        print '  > python {} <input_file> [output_file]'.format(sys.argv[0])
+        print('Fix a raw memory PE file to load it with IDA.')
+        print('  > python {} <input_file> [output_file]'.format(sys.argv[0]))
         return
     input_file_path = sys.argv[1]
     if len(sys.argv) == 3:
@@ -55,19 +55,19 @@ def main():
     imp_dir = pe.OPTIONAL_HEADER.DATA_DIRECTORY[pefile.DIRECTORY_ENTRY[
         'IMAGE_DIRECTORY_ENTRY_IMPORT']]
     if imp_dir.VirtualAddress != 0:
-        print 'Import Directory RVA : {:08x} => 0'.format(
-            imp_dir.VirtualAddress)
+        print('Import Directory RVA : {:08x} => 0'.format(
+            imp_dir.VirtualAddress))
         imp_dir.VirtualAddress = 0
     # Fix the section headers.
     index = 1
     for section in pe.sections:
         new_raw_size = max(section.SizeOfRawData, section.Misc_VirtualSize)
-        print 'Section {} : \'{}\' {}'.format(
-            index, section.Name, binascii.hexlify(section.Name))
-        print '  SizeOfRawData   : {:08x} => {:08x}'.format(
-            section.SizeOfRawData, new_raw_size)
-        print '  PointerToRawData: {:08x} => {:08x}'.format(
-            section.PointerToRawData, section.VirtualAddress)
+        print('Section {} : \'{}\' {}'.format(
+            index, section.Name, binascii.hexlify(section.Name)))
+        print('  SizeOfRawData   : {:08x} => {:08x}'.format(
+            section.SizeOfRawData, new_raw_size))
+        print('  PointerToRawData: {:08x} => {:08x}'.format(
+            section.PointerToRawData, section.VirtualAddress))
         section.SizeOfRawData = new_raw_size
         section.PointerToRawData = section.VirtualAddress
         index += 1
