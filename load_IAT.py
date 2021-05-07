@@ -7,7 +7,7 @@
 ################################################################################
 # The MIT License (MIT)
 #
-# Copyright (c) 2015-2016 tandasat
+# Copyright (c) 2015-2021 Satoshi Tanda
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of
 # this software and associated documentation files (the "Software"), to deal in
@@ -27,10 +27,11 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ################################################################################
 import re
-
+import ida_kernwin
+import ida_bytes
 
 def main():
-    path = AskFile(0, '*.*', 'Select a dumped IAT file.')
+    path = ida_kernwin.ask_file(0, '*.*', 'Select a dumped IAT file.')
     if not path:
         return
     for line in open(path, 'r'):
@@ -41,13 +42,13 @@ def main():
             addr = line[0:9]
             symbol = line[19:]
             bytewise = 4
-            optype =  FF_DWRD
+            optype =  ida_bytes.FF_DWORD
         elif re.match('^[0-9a-f]{16} ', line):
             # 64bit
             addr = line[0:17]
             symbol = line[27:]
             bytewise = 8
-            optype =  FF_QWRD
+            optype =  ida_bytes.FF_DWORD
         else:
             continue
         if re.match('^.+!.+$', symbol) is None:
@@ -72,16 +73,16 @@ def main():
         print(hex(addr), api)
 
         # Set a data type on the IDB
-        MakeUnknown(addr, bytewise, DOUNK_EXPAND)
-        MakeData(addr, optype, bytewise, 0)
-        if MakeNameEx(addr, api, SN_CHECK | SN_NOWARN) == 1:
+        ida_bytes.del_items(addr, bytewise, ida_bytes.DELIT_EXPAND)
+        ida_bytes.create_data(addr, optype, bytewise, 0)
+        if idc.set_name(addr, api, SN_CHECK | SN_NOWARN) == 1:
             continue
         # Try to name it as <name>_N up to _99
         for i in range(100):
-            if MakeNameEx(addr, api + '_' + str(i), SN_CHECK | SN_NOWARN) == 1:
+            if idc.set_name(addr, api + '_' + str(i), SN_CHECK | SN_NOWARN) == 1:
                 break
             if i == 99:
-                MakeName(addr, api)   # Display an error message
+                idc.set_name(addr, api, SN_CHECK)   # Display an error message
     print (
         'Load an appropriate FLIRT signature if it is not applied yet.\n'
         'Then, use [Options] > [General] > [Analysis] > [Reanalyze program] to'
